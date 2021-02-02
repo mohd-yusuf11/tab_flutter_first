@@ -1,162 +1,143 @@
-import 'package:codehelpnavuagtor/tab_items.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_speed_dial_material_design/flutter_speed_dial_material_design.dart';
 
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(App(
 
-void main() {
-  runApp(MyApp());
+  ));
 }
 
-class MyApp extends StatelessWidget {
+class App extends StatelessWidget {
+  // Create the initialization Future outside of `build`:
+  final Future<FirebaseApp> _initialization = Firebase.initializeApp();
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: LstView(),
+    return FutureBuilder(
+      // Initialize FlutterFire:
+      future: _initialization,
+      builder: (context, snapshot) {
+        // Check for errors
+        if (snapshot.hasError) {
+          print(snapshot.hasError);
+        }
+
+        // Once complete, show your application
+        if (snapshot.connectionState == ConnectionState.done) {
+          return MaterialApp(debugShowCheckedModeBanner: false,
+            home: MyAwesomeApp(),
+          );
+        }
+
+        // Otherwise, show something whilst waiting for initialization to complete
+        return CircularProgressIndicator();
+      },
     );
   }
 }
-
-class LstView extends StatefulWidget {
+class MyAwesomeApp extends StatefulWidget {
   @override
-  _LstViewState createState() => _LstViewState();
+  _MyAwesomeAppState createState() => _MyAwesomeAppState();
 }
 
-class _LstViewState extends State<LstView> {
-  SpeedDialController _controller = SpeedDialController();
+class _MyAwesomeAppState extends State<MyAwesomeApp> {
+  TextEditingController Name = TextEditingController();
+  TextEditingController Phone = TextEditingController();
+  GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  final db = FirebaseFirestore.instance;
 
-  final tabs = [
-    'Home',
-    'Person',
-    'Draft',
-    'Search',
-  ];
-  int selectedTabs = 0;
+  createAlertDialog(BuildContext context) {
+    return showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Form'),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  TextFormField(
+                    controller: Name,
+                    validator: (_val) {
+                      if (_val.isEmpty) {
+                        return " Can't be empty ";
+                      } else {
+                        return null;
+                      }
+                    },
+                    decoration: InputDecoration(
+                      suffixIcon: IconButton(
+                          icon: Icon(Icons.clear),
+                          onPressed: () => Name.clear()),
+                      hintText: 'Enter Your Name',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  TextFormField(
+                    keyboardType: TextInputType.number,
+                    controller: Phone,
+                    validator: (_val) {
+                      if (_val.length <= 10) {
+                        return "must be 10 digit";
+                      } else {
+                        return null;
+                      }
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Enter Your Phone No',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      suffixIcon: IconButton(
+                          icon: Icon(Icons.clear),
+                          onPressed: () => Phone.clear()),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              FlatButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('Cancel'),
+              ),
+              FlatButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('Ok'),
+              ),
+            ],
+          );
+        });
+  }
 
-  @override
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(tabs[selectedTabs]),
-      ),
-
-
-      floatingActionButton: _buildFloatingActionButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _buildBottomTab(),
-    );
-  }
-
-  _buildBottomTab() {
-    return BottomAppBar(
-      shape: CircularNotchedRectangle(),
-      color: Color.fromRGBO(9, 20, 97, .9),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          TabItem(
-              text: tabs[0],
-              icon: Icons.home,
-              isSelected: selectedTabs == 0,
-              onTap: () {
-                setState(() {
-                  selectedTabs = 0;
-                });
-              }),
-          TabItem(
-            text: tabs[1],
-            icon: Icons.person,
-            isSelected: selectedTabs == 1,
-            onTap: () {
-              setState(() {
-                selectedTabs = 1;
-              });
-            },
-          ),
-          SizedBox(
-            width: 20,
-          ),
-          TabItem(
-            text: tabs[2],
-            icon: Icons.drafts,
-            isSelected: selectedTabs == 2,
-            onTap: () {
-              setState(() {
-                selectedTabs = 2;
-              });
-            },
-          ),
-          TabItem(
-            text: tabs[3],
-            icon: Icons.search,
-            isSelected: selectedTabs == 3,
-            onTap: () {
-              setState(() {
-                selectedTabs = 3;
-              });
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFloatingActionButton() {
-    final TextStyle customStyle = TextStyle(
-        inherit: false, color: Colors.black);
-    final icons = [
-      SpeedDialAction(
-        //backgroundColor: Colors.green,
-        //foregroundColor: Colors.yellow,
-          child: Icon(Icons.mode_edit),
-          label: Text('Edit any item', style: customStyle)),
-      SpeedDialAction(child: Icon(Icons.date_range),
-          label: Text('Choose the date', style: customStyle)),
-      SpeedDialAction(
-          child: Icon(Icons.list), label: Text('Menu', style: customStyle)),
-    ];
-
-    return SpeedDialFloatingActionButton(
-      actions: icons,
-      childOnFold: Icon(Icons.event_note, key: UniqueKey()),
-      screenColor: Colors.black.withOpacity(0.3),
-      //childOnUnfold: Icon(Icons.add),
-      useRotateAnimation: false,
-      onAction: _onSpeedDialAction,
-      controller: _controller,
-      isDismissible: true,
-      //backgroundColor: Colors.yellow,
-      //foregroundColor: Colors.blue,
-    );
-  }
-
-  _onSpeedDialAction(int selectedActionIndex) {
-    print('$selectedActionIndex Selected');
-  }
-
-  Widget _buildBottomBar() {
-    return BottomAppBar(
-      shape: CircularNotchedRectangle(),
-      notchMargin: 4.0,
-      child: Container(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
-          children: <Widget>[
-            IconButton(
-              icon: Icon(Icons.menu),
-              onPressed: () => {},
-            ),
-            IconButton(
-              icon: Icon(Icons.today),
-              onPressed: () => {},
-            ),
-          ],
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Flutter Cloud'),
+        ),
+        body: Column(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            createAlertDialog(context);
+          },
+          child: Icon(Icons.add),
         ),
       ),
     );
   }
-
-
 }
